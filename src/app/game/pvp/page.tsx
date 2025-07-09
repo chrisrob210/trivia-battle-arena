@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getTriviaQuestions, Question } from '../../../../lib/trivia';
+import { getTriviaQuestions, Question } from '../../../lib/trivia';
 
 interface HealthBarProps {
     hp: number;
