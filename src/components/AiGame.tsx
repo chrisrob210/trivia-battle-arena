@@ -31,17 +31,19 @@ interface QuestionCardProps {
     question: Question;
     onAnswer: (answer: string) => void;
     disabled: boolean;
+    correctAnswer: string | null;
 }
 
-function QuestionCard({ question, onAnswer, disabled }: QuestionCardProps) {
+function QuestionCard({ question, onAnswer, disabled, correctAnswer }: QuestionCardProps) {
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-semibold" dangerouslySetInnerHTML={{ __html: question.question }} />
-            <div className="grid gap-2">
+            <div className={`${!correctAnswer ? `opacity-0` : `opacity-100`} ${correctAnswer ? 'text-red-500' : 'text-green-500'} font-semibold transition-opacity duration-500`}>{correctAnswer ? `Correct Answer: ${correctAnswer}` : 'Correct Answer'}</div>
+            <div className='grid gap-2  transition-opacity duration-700'>
                 {question.answers.map((answer) => (
                     <button
                         key={answer}
-                        className="px-4 py-2 rounded-lg bg-blue-700 text-white disabled:opacity-50 hover:bg-blue-600 transition-colors duration-300"
+                        className="px-4 py-2 rounded-lg bg-blue-700 text-white disabled:opacity-50 hover:bg-blue-600 transition-all duration-300"
                         onClick={() => onAnswer(answer)}
                         disabled={disabled}
                         dangerouslySetInnerHTML={{ __html: answer }}
@@ -63,6 +65,8 @@ export function AiGame() {
     const [triviaCategory, setTriviaCategory] = useState<number | null>(null);
     const [categories, setCategories] = useState<TriviaCategory[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+    const [changeCategoryDisabled, setChangeCategoryDisabled] = useState(false);
+    const [correctAnswer, setCorrectAnswer] = useState<string | null>(null)
 
     let hasFetched = false;
 
@@ -75,8 +79,8 @@ export function AiGame() {
         hasFetched = true;  //
         if (triviaCategory) {
             getTriviaQuestions({ amount: 5, difficulty: 'easy', category: triviaCategory })
-                .then((qs) => setQuestions(qs))
-                .finally(() => setLoading(false));
+                .then((qs) => { if (qs) setQuestions(qs) })
+                .finally(() => setLoading(false))
         }
     }, [triviaCategory]);
 
@@ -91,6 +95,14 @@ export function AiGame() {
         }
     }, [playerHP, aiHP, index, questions.length]);
 
+    useEffect(() => {
+        if (questions.length > 0) {
+            setChangeCategoryDisabled(true);
+            const timer = setTimeout(() => setChangeCategoryDisabled(false), 6000);
+            return () => clearTimeout(timer);
+        }
+    }, [questions]);
+
     function handleAnswer(answer: string) {
         if (answerLocked || winner) return;
         if (!questions[index]) return;
@@ -98,8 +110,10 @@ export function AiGame() {
         setAnswerLocked(true);
         if (correct) {
             setAiHP((hp) => Math.max(hp - 20, 0));
+            setCorrectAnswer(null)
         } else {
             setPlayerHP((hp) => Math.max(hp - 20, 0));
+            setCorrectAnswer(questions[index].correctAnswer)
         }
         setTimeout(() => {
             setIndex((i) => i + 1);
@@ -115,13 +129,20 @@ export function AiGame() {
         setWinner(null);
         setTriviaCategory(null)
         setAnswerLocked(false);
+        setCorrectAnswer(null)
+        setSelectedCategory(null)
         // getTriviaQuestions({ amount: 5, difficulty: 'easy', category: triviaCategory! })
         //     .then((qs) => setQuestions(qs))
         //     .finally(() => setLoading(false));
     }
 
+    function handleChangeCategory() {
+        setTriviaCategory(null)
+        setSelectedCategory(null)
+    }
+
     if (loading && triviaCategory) {
-        return <div className="p-4">Loading questions...</div>;
+        return <div className="p-4 flex flex-col items-center">Loading questions...</div>;
     }
 
     if (!triviaCategory && categories.length > 0) {
@@ -130,10 +151,10 @@ export function AiGame() {
                 <div className="font-semibold">Select Trivia Category:</div>
                 <div className="flex gap-1">
                     <select
-                        className="p-2 border rounded-lg bg-white text-black"
-                        value={selectedCategory ?? ''}
+                        className="p-2 border rounded-lg"
+                        // value={selectedCategory ?? categories.length > 0 ? categories[0].id : ''}
                         onChange={(e) => setSelectedCategory(Number(e.target.value))}
-                    // defaultValue={categories[0].id}
+                        defaultValue={categories[0].id}
                     >
 
                         {categories.map((c) => (
@@ -144,7 +165,7 @@ export function AiGame() {
                     </select>
                     <button
                         className="px-4 py-2 rounded-lg bg-slate-600 text-white hover:bg-slate-500 transition-colors duration-500"
-                        onClick={() => selectedCategory && setTriviaCategory(selectedCategory)}
+                        onClick={() => selectedCategory ? setTriviaCategory(selectedCategory) : setTriviaCategory(9)}
                     >
                         Select
                     </button>
@@ -176,9 +197,15 @@ export function AiGame() {
         <div className="p-4 space-y-6 max-w-xl mx-auto">
             <HealthBar hp={playerHP} label="Player HP" />
             <HealthBar hp={aiHP} label="AI HP" />
-            <QuestionCard question={current} onAnswer={handleAnswer} disabled={answerLocked} />
+            <QuestionCard question={current} onAnswer={handleAnswer} disabled={answerLocked} correctAnswer={correctAnswer} />
             <div className="flex flex-row justify-center gap-4">
-                <button className="text-white bg-yellow-600 hover:bg-yellow-500 transition-colors duration-300 px-2 py-1 rounded-lg text-sm" onClick={() => setTriviaCategory(null)}>Change Category</button>
+                <button
+                    className={`${changeCategoryDisabled ? `text-slate-300 bg-stone-600` : `text-white bg-yellow-600`} ${!changeCategoryDisabled && `hover:bg-yellow-500 transition-colors duration-300`} px-2 py-1 rounded-lg text-sm disabled:opacity-50`}
+                    onClick={handleChangeCategory}
+                    disabled={changeCategoryDisabled}
+                >
+                    {changeCategoryDisabled ? 'Wait to Change' : 'Change Category'}
+                </button>
                 <button className="text-white bg-green-600 hover:bg-green-500 transition-colors duration-300 px-2 py-1 rounded-lg text-sm" onClick={() => handlePlayAgain()}>New Game</button>
             </div>
         </div>
