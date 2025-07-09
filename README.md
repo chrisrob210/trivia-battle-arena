@@ -36,9 +36,9 @@ The app runs at [http://localhost:3000](http://localhost:3000).
 
 ## Customizing Questions
 
-Both game modes fetch questions with `getTriviaQuestions` in their respective page files:
+Both game modes fetch questions with `getTriviaQuestions` in their respective components/pages:
 
-- `src/app/game/ai/page.tsx`
+- `src/components/AiGame.tsx`
 - `src/app/game/pvp/page.tsx`
 
 Edit the `amount` and `difficulty` options to change how many questions are asked and at what difficulty.
@@ -48,3 +48,22 @@ getTriviaQuestions({ amount: 5, difficulty: 'easy' })
 ```
 
 Valid difficulties are `easy`, `medium`, and `hard`.
+
+## Using AiGame in Other Projects
+
+The AI mode is available as a standalone React component located at
+`src/components/AiGame.tsx`.
+
+If this project is installed as a dependency you can import it like:
+
+```ts
+import { AiGame } from 'trivia-battle-arena';
+```
+
+Or reference the file directly with a relative path:
+
+```ts
+import { AiGame } from '../path/to/trivia-battle-arena/src/components/AiGame';
+```
+
+
